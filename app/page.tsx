@@ -6,15 +6,15 @@ import { api } from "../convex/_generated/api";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { SignOutButton } from "@/components/signoutbutton";
 import Link from "next/link";
-import { Id } from "../convex/_generated/dataModel"; // Import this
+import { Id } from "../convex/_generated/dataModel";
 
 export default function MainPage() {
   const { isAuthenticated, isLoading } = useConvexAuth();
+  
   const todos = useQuery(api.todos.get);
-  const user = useQuery(api.todos.current);
+  const user = useQuery(api.todos.current);     // kept as per your setup
 
   const { signOut } = useAuthActions();
-  
   const [text, setText] = useState("");
 
   // Create mutation with optimistic update
@@ -22,12 +22,12 @@ export default function MainPage() {
     (localStore, args) => {
       const existingTodos = localStore.getQuery(api.todos.get);
       
-      if (existingTodos !== undefined) {
+      if (existingTodos !== undefined && user?._id) {
         const optimisticTodo = {
-          _id: crypto.randomUUID() as Id<"todos">, // Temporary ID
+          _id: crypto.randomUUID() as Id<"todos">,
           _creationTime: Date.now(),
+          userId: user._id,                    // Fixed: was causing build error
           text: args.text,
-          // Add any other fields your todo has (userId, completed, etc.)
         };
 
         localStore.setQuery(
@@ -63,7 +63,6 @@ export default function MainPage() {
       setText(""); 
     } catch (error) {
       console.error("Failed to create todo:", error);
-      // Convex will automatically rollback the optimistic update on error
     }
   };
 
@@ -72,11 +71,13 @@ export default function MainPage() {
       await deleteTodo({ id });
     } catch (error) {
       console.error("Failed to delete todo:", error);
-      // Convex auto-rolls back on error
     }
   };
 
-  if (isLoading) return <p className="mt-10 text-center text-gray-500">Checking auth...</p>;
+  if (isLoading) {
+    return <p className="mt-10 text-center text-gray-500">Checking auth...</p>;
+  }
+  
   if (!isAuthenticated) {
     return (
       <div className="mt-10 text-center">
@@ -91,10 +92,17 @@ export default function MainPage() {
 
   return (
     <main className="max-w-md mx-auto mt-10 p-4">
-      <p>email: {user?.email}</p>
+      <p className="mb-2">email: {user?.email}</p>
       <SignOutButton />
-      <Link href="/contact">go to contact</Link>
-      <Link href="/counter">go to counter</Link>
+
+      <div className="flex gap-4 my-6">
+        <Link href="/contact" className="text-blue-400 hover:underline">
+          Go to Contact
+        </Link>
+        <Link href="/counter" className="text-blue-400 hover:underline">
+          Go to Counter
+        </Link>
+      </div>
 
       <h1 className="text-2xl font-bold mb-6">My Todos</h1>
 
@@ -105,11 +113,11 @@ export default function MainPage() {
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="What do you need to do?"
-          className="border p-2 flex-1 rounded text-white"
+          className="border p-2 flex-1 rounded text-white bg-zinc-900 border-zinc-700 focus:outline-none"
         />
         <button
           type="submit"
-          className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800"
+          className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800 transition"
         >
           Add
         </button>
@@ -120,12 +128,12 @@ export default function MainPage() {
         {todos.map((todo) => (
           <li
             key={todo._id}
-            className="flex justify-between items-center border p-3 rounded shadow-sm"
+            className="flex justify-between items-center border border-zinc-700 bg-zinc-900 p-4 rounded-xl"
           >
             <span>{todo.text}</span>
             <button
               onClick={() => handleDelete(todo._id)}
-              className="text-red-600 font-medium hover:text-red-800"
+              className="text-red-600 font-medium hover:text-red-700"
             >
               Delete
             </button>
@@ -133,11 +141,13 @@ export default function MainPage() {
         ))}
 
         {todos.length === 0 && (
-          <p className="text-gray-500 text-center">Your list is empty.</p>
+          <p className="text-gray-500 text-center py-8">Your list is empty.</p>
         )}
-        
       </ul>
-      <p>todo length : {todos.length}</p>
+
+      <p className="text-center text-sm text-gray-500 mt-8">
+        Total todos: {todos.length}
+      </p>
     </main>
   );
 }
