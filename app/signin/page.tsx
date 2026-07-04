@@ -4,8 +4,6 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Image from "next/image";
-import { api } from "@/convex/_generated/api";
-import { useQuery } from "convex/react";
 
 export default function SignIn() {
   const { signIn } = useAuthActions();
@@ -13,12 +11,10 @@ export default function SignIn() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-   const user = useQuery(api.todos.current);
   return (
     
     <div className="flex flex-col gap-8 w-full max-w-lg mx-auto h-screen justify-center items-center px-4">
       <div className="text-center flex flex-col items-center gap-4">
-         <p>user mail : {user?.email}</p>
         <div className="flex items-center gap-6">
           <Image
             src="/convex.svg"
